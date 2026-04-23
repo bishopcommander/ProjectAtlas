@@ -51,3 +51,7 @@ frontend/dist/
 *.db
 *.sqlite
 *.sqlite3
+
+# Scratch files
+scratch/
+
