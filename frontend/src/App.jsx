@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import LandingPage from "./LandingPage";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
@@ -80,16 +80,80 @@ function getInitialTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function ProjectListItem({ project, onOpen }) {
+const BOOKMARK_STORAGE_KEY = "atlas_bookmarks";
+
+export function useBookmarks() {
+  const [bookmarks, setBookmarks] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = window.localStorage.getItem(BOOKMARK_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const addBookmark = (id) => {
+    setBookmarks((prev) => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const removeBookmark = (id) => {
+    setBookmarks((prev) => {
+      const updated = prev.filter((bookmarkId) => bookmarkId !== id);
+      window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const toggleBookmark = (id) => {
+    if (bookmarks.includes(id)) {
+      removeBookmark(id);
+    } else {
+      addBookmark(id);
+    }
+  };
+
+  const isBookmarked = (id) => bookmarks.includes(id);
+
+  return { bookmarks, addBookmark, removeBookmark, toggleBookmark, isBookmarked };
+}
+
+function ProjectListItem({ project, onOpen, isBookmarked, onToggleBookmark }) {
   return (
     <article 
       className="card p-5 flex flex-col sm:flex-row gap-6 items-start sm:items-center cursor-pointer hover:border-atlas-accent/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
       onClick={() => onOpen(project.projectId)}
     >
       <div className="flex-1">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 group-hover:text-atlas-accent transition-colors">
-          {project.title}
-        </h3>
+        <div className="flex items-start justify-between">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 group-hover:text-atlas-accent transition-colors pr-4">
+            {project.title}
+          </h3>
+          {onToggleBookmark && (
+            <button
+              type="button"
+              className={`shrink-0 p-2 rounded-full transition-colors ${
+                isBookmarked
+                  ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
+                  : "text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleBookmark(project.projectId);
+              }}
+              title={isBookmarked ? "Remove bookmark" : "Bookmark this project"}
+            >
+              <svg className="w-5 h-5" fill={isBookmarked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
+          )}
+        </div>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
           {project.shortHook || project.description || "No summary available yet."}
         </p>
@@ -115,47 +179,144 @@ function ProjectListItem({ project, onOpen }) {
   );
 }
 
-function FeedSection({ title, helper, projects, onOpen, onViewMore }) {
+function ProjectCard({ project, onOpen, isBookmarked, onToggleBookmark }) {
   return (
-    <section className="card p-6">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
-          <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">{helper}</p>
-        </div>
-        <button className="button-secondary whitespace-nowrap" onClick={onViewMore}>
-          See more
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {projects.length ? (
-          projects.map((project) => (
-            <button
-              key={project.projectId}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-atlas-accent dark:border-slate-700 dark:bg-slate-900"
-              onClick={() => onOpen(project.projectId)}
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-medium text-slate-900 dark:text-slate-100">{project.title}</span>
-                <span className="text-xs uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  {formatLabel(project.difficulty)}
-                </span>
-              </div>
-              <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">
-                {project.shortHook || project.description || "No summary available yet."}
-              </p>
-            </button>
-          ))
-        ) : (
-          <p className="rounded-2xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            No data is loaded for this section yet.
-          </p>
+    <article 
+      className="card p-5 flex flex-col h-full cursor-pointer hover:border-atlas-accent/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+      onClick={() => onOpen(project.projectId)}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 group-hover:text-atlas-accent transition-colors line-clamp-2 pr-4">
+          {project.title}
+        </h3>
+        {onToggleBookmark && (
+          <button
+            type="button"
+            className={`shrink-0 p-1.5 rounded-full transition-colors ${
+              isBookmarked
+                ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-500/10"
+                : "text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleBookmark(project.projectId);
+            }}
+            title={isBookmarked ? "Remove bookmark" : "Bookmark this project"}
+          >
+            <svg className="w-5 h-5" fill={isBookmarked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          </button>
         )}
       </div>
-    </section>
+      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 mb-4 flex-grow">
+        {project.shortHook || project.description || "No summary available yet."}
+      </p>
+      <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50 flex flex-col gap-3">
+        <div className="flex flex-wrap gap-2 text-xs">
+          {tagsFor(project).slice(0, 3).map((tag) => (
+            <span key={`${project.projectId}-${tag}`} className="tag px-1.5 py-0.5 text-[10px]">{tag}</span>
+          ))}
+          {tagsFor(project).length > 3 && (
+             <span className="tag px-1.5 py-0.5 text-[10px]">+{tagsFor(project).length - 3}</span>
+          )}
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          <div className="flex items-center gap-1.5">
+             <span className="text-lg font-bold text-slate-900 dark:text-white leading-none">{numberOrDash(project.impactScore)}</span>
+             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Impact</span>
+          </div>
+          {project.isTrending ? (
+             <span className="px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded text-[10px] font-semibold uppercase tracking-wide">Trending</span>
+          ) : (
+             <div className="text-[10px] text-slate-400 font-medium">{formatCompactNumber(project.viewCount)} views</div>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
+
+function AllProjectsView({ bookmarks, removeBookmark, toggleBookmark, isBookmarked, onOpenBreakdown }) {
+  const [projects, setProjects] = useState([]);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchProjects = async (pageNum) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`http://localhost:8080/api/projects?page=${pageNum}&size=24`);
+      if (!res.ok) throw new Error("Failed to load projects");
+      const data = await res.json();
+      
+      if (pageNum === 0) {
+        setProjects(data.content || []);
+      } else {
+        setProjects(prev => [...prev, ...(data.content || [])]);
+      }
+      
+      setHasMore(!data.last);
+    } catch (err) {
+      setError("Could not load projects.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects(page);
+  }, [page]);
+
+  return (
+    <div className="space-y-8">
+      <header className="mb-8 border-b border-slate-200 pb-6 dark:border-slate-800">
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50">All Projects</h2>
+        <p className="mt-2 text-slate-600 dark:text-slate-400">Browse the entire marketplace of projects on the platform.</p>
+      </header>
+
+      {error && (
+        <section className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          {error}
+        </section>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {projects.map((project) => (
+          <ProjectCard 
+            key={`all-proj-${project.projectId}`} 
+            project={project} 
+            onOpen={onOpenBreakdown}
+            isBookmarked={isBookmarked(project.projectId)}
+            onToggleBookmark={toggleBookmark}
+          />
+        ))}
+        {loading && Array.from({ length: page === 0 ? 12 : 4 }).map((_, index) => (
+          <div key={`skel-${index}`} className="card h-64 animate-pulse bg-slate-100 dark:bg-slate-800" />
+        ))}
+      </div>
+      
+      {!loading && projects.length === 0 && !error && (
+        <div className="card p-12 text-center text-slate-500">No projects found.</div>
+      )}
+
+      {hasMore && !error && (
+        <div className="mt-10 flex justify-center pb-12">
+          <button 
+            className="button-secondary px-8 py-3"
+            onClick={() => setPage(p => p + 1)}
+            disabled={loading}
+          >
+            {loading ? "Loading..." : "Load More Projects"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function InfoBlock({ title, content, fallback }) {
   return (
@@ -186,7 +347,7 @@ function ListBlock({ title, items, emptyText }) {
   );
 }
 
-function DetailDrawer({ breakdown, open, loading, onClose }) {
+function DetailDrawer({ breakdown, open, loading, onClose, isBookmarked, onToggleBookmark }) {
   const project = breakdown.project;
   const detail = breakdown.detail;
   const score = breakdown.evaluation;
@@ -202,9 +363,22 @@ function DetailDrawer({ breakdown, open, loading, onClose }) {
               {project?.title || (loading ? "Loading..." : "No project selected")}
             </h2>
           </div>
-          <button className="button-secondary" onClick={onClose}>
-            Close
-          </button>
+          <div className="flex items-center gap-3">
+            {project && onToggleBookmark && (
+              <button 
+                className={`button-secondary flex items-center gap-2 ${isBookmarked ? 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-500/10 dark:border-yellow-500/20 dark:text-yellow-500' : ''}`}
+                onClick={() => onToggleBookmark(project.projectId)}
+              >
+                <svg className="w-4 h-4" fill={isBookmarked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                {isBookmarked ? 'Saved' : 'Save'}
+              </button>
+            )}
+            <button className="button-secondary" onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -282,6 +456,84 @@ function DetailDrawer({ breakdown, open, loading, onClose }) {
   );
 }
 
+function Dashboard({ bookmarks, removeBookmark, onOpenBreakdown }) {
+  const [bookmarkedProjects, setBookmarkedProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (bookmarks.length === 0) {
+      setBookmarkedProjects([]);
+      setLoading(false);
+      return;
+    }
+
+    const fetchBookmarks = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const ids = bookmarks.join(",");
+        const res = await fetch(`http://localhost:8080/api/projects/bulk?ids=${ids}`);
+        if (!res.ok) throw new Error("Failed to load bookmarks");
+        const data = await res.json();
+        setBookmarkedProjects(data);
+      } catch (err) {
+        setError("Could not load bookmarked projects.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBookmarks();
+  }, [bookmarks]);
+
+  return (
+    <div className="space-y-8">
+      <header className="mb-8 border-b border-slate-200 pb-6 dark:border-slate-800">
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Your Dashboard</h2>
+        <p className="mt-2 text-slate-600 dark:text-slate-400">Projects you've saved for later.</p>
+      </header>
+
+      {error && (
+        <section className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          {error}
+        </section>
+      )}
+
+      {loading ? (
+        <div className="flex flex-col gap-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={`dash-skeleton-${index}`} className="card h-28 animate-pulse bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+      ) : bookmarkedProjects.length > 0 ? (
+        <div className="flex flex-col gap-4">
+          {bookmarkedProjects.map((project) => (
+            <ProjectListItem 
+              key={project.projectId} 
+              project={project} 
+              onOpen={onOpenBreakdown}
+              isBookmarked={true}
+              onToggleBookmark={removeBookmark}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="card p-12 text-center flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-4">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">No bookmarks yet</h3>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-sm">
+            You haven't saved any projects to your dashboard. Explore the feeds and click the bookmark icon to save projects you want to build.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [theme, setTheme] = useState(getInitialTheme);
   const [query, setQuery] = useState("");
@@ -305,7 +557,8 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [breakdown, setBreakdown] = useState(emptyBreakdown());
-  const [view, setView] = useState("landing");
+  const [view, setView] = useState("landing"); // "landing", "explorer", "dashboard"
+  const { bookmarks, toggleBookmark, isBookmarked, removeBookmark } = useBookmarks();
 
   const hasStructuredFilters = Boolean(filters.difficulty || filters.category || filters.impact || filters.trending);
 
@@ -591,13 +844,30 @@ export default function App() {
           
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setView(view === "landing" ? "explorer" : "landing")}
-              className="text-sm font-semibold text-slate-600 hover:text-atlas-accent dark:text-slate-400"
+              onClick={() => setView("explorer")}
+              className={`text-sm font-semibold transition-colors ${view === 'explorer' ? 'text-atlas-accent' : 'text-slate-600 hover:text-atlas-accent dark:text-slate-400'}`}
             >
-              {view === "landing" ? "Browse Explorer" : "Back to Home"}
+              Explorer
             </button>
             <button
-              className="button-secondary"
+              onClick={() => setView("all")}
+              className={`text-sm font-semibold transition-colors ${view === 'all' ? 'text-atlas-accent' : 'text-slate-600 hover:text-atlas-accent dark:text-slate-400'}`}
+            >
+              All Projects
+            </button>
+            <button
+              onClick={() => setView("dashboard")}
+              className={`text-sm font-semibold transition-colors flex items-center gap-1 ${view === 'dashboard' ? 'text-atlas-accent' : 'text-slate-600 hover:text-atlas-accent dark:text-slate-400'}`}
+            >
+              Dashboard
+              {bookmarks.length > 0 && (
+                <span className="bg-atlas-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {bookmarks.length}
+                </span>
+              )}
+            </button>
+            <button
+              className="button-secondary ml-2"
               type="button"
               onClick={() => setTheme((currentTheme) => (currentTheme === "light" ? "dark" : "light"))}
             >
@@ -616,6 +886,20 @@ export default function App() {
               topStacks={topStacks}
               onSearchTag={searchByTag}
             />
+          ) : view === "dashboard" ? (
+            <Dashboard 
+              bookmarks={bookmarks} 
+              removeBookmark={removeBookmark} 
+              onOpenBreakdown={openBreakdown} 
+            />
+          ) : view === "all" ? (
+            <AllProjectsView 
+              bookmarks={bookmarks} 
+              removeBookmark={removeBookmark} 
+              toggleBookmark={toggleBookmark}
+              isBookmarked={isBookmarked}
+              onOpenBreakdown={openBreakdown} 
+            />
           ) : (
             <div className="space-y-10">
               <header className="border-b border-slate-200 pb-8 dark:border-slate-800">
@@ -628,7 +912,11 @@ export default function App() {
                       This list comes from your backend. You can search it, filter it, and open a full breakdown for each idea.
                     </p>
 
-                    <form className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900" onSubmit={runSmartSearch}>
+                    <div className="mt-8 flex items-center gap-2 mb-2">
+                       <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+                       <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">AI-Powered Smart Search</span>
+                    </div>
+                    <form className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500/20" onSubmit={runSmartSearch}>
                       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
                         <input
                           className="field"
@@ -781,45 +1069,7 @@ export default function App() {
                 </section>
 
 
-                <section>
-                  <div className="mb-5">
-                    <h2 className="text-2xl font-semibold text-slate-950 dark:text-slate-100">Lists from the API</h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">
-                      These sections are not marketing cards. They show real results from each backend endpoint.
-                    </p>
-                  </div>
 
-                  <div className="grid gap-5 xl:grid-cols-2">
-                    <FeedSection
-                      title="Trending"
-                      helper="Projects from /api/discovery/trending"
-                      projects={feeds.trending}
-                      onOpen={openBreakdown}
-                      onViewMore={() => loadFeed("trending", "/discovery/trending", "Trending projects")}
-                    />
-                    <FeedSection
-                      title="High impact"
-                      helper="Projects from /api/discovery/high-impact"
-                      projects={feeds.impact}
-                      onOpen={openBreakdown}
-                      onViewMore={() => loadFeed("high impact", "/discovery/high-impact", "High impact projects")}
-                    />
-                    <FeedSection
-                      title="Backend focused"
-                      helper="Projects from /api/discovery/backend-focused"
-                      projects={feeds.backend}
-                      onOpen={openBreakdown}
-                      onViewMore={() => loadFeed("backend focused", "/discovery/backend-focused", "Backend focused projects")}
-                    />
-                    <FeedSection
-                      title="Underrated"
-                      helper="Projects from /api/discovery/underrated"
-                      projects={feeds.underrated}
-                      onOpen={openBreakdown}
-                      onViewMore={() => loadFeed("underrated", "/discovery/underrated", "Underrated projects")}
-                    />
-                  </div>
-                </section>
 
                 <section>
                   <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -845,7 +1095,13 @@ export default function App() {
                   ) : results.length ? (
                     <div className="flex flex-col gap-4">
                       {results.map((project) => (
-                        <ProjectListItem key={project.projectId} project={project} onOpen={openBreakdown} />
+                        <ProjectListItem 
+                          key={project.projectId} 
+                          project={project} 
+                          onOpen={openBreakdown} 
+                          isBookmarked={isBookmarked(project.projectId)}
+                          onToggleBookmark={toggleBookmark}
+                        />
                       ))}
                     </div>
 
@@ -904,7 +1160,129 @@ export default function App() {
         open={drawerOpen}
         loading={drawerLoading}
         onClose={() => setDrawerOpen(false)}
+        isBookmarked={breakdown.project ? isBookmarked(breakdown.project.projectId) : false}
+        onToggleBookmark={toggleBookmark}
       />
+
+      <MentorChat 
+        onOpenBreakdown={openBreakdown}
+      />
+    </div>
+  );
+}
+
+function MentorChat({ onOpenBreakdown }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [history, setHistory] = useState([
+    { role: 'assistant', content: "Hi! I'm your Project Mentor. Tell me about your career goals—like 'I want to work at a big bank' or 'I want to be a DevOps engineer'—and I'll find the best projects for you." }
+  ]);
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [history]);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!message.trim() || loading) return;
+
+    const userMsg = message.trim();
+    setMessage("");
+    setHistory(prev => [...prev, { role: 'user', content: userMsg }]);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg })
+      });
+      const data = await res.json();
+      setHistory(prev => [...prev, { 
+        role: 'assistant', 
+        content: data.message, 
+        recommendations: data.recommendations 
+      }]);
+    } catch (err) {
+      setHistory(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting to my brain right now." }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+      {isOpen && (
+        <div className="mb-4 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in slide-in-from-bottom-4 duration-300">
+          <header className="flex items-center justify-between border-b border-slate-100 bg-atlas-accent/5 p-4 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-atlas-accent text-white">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              </div>
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100">Project Mentor</h3>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </header>
+
+          <div 
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
+          >
+            {history.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${msg.role === 'user' ? 'bg-atlas-accent text-white shadow-sm' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'}`}>
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  
+                  {msg.recommendations && msg.recommendations.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Recommended Projects:</p>
+                      {msg.recommendations.map(p => (
+                        <div key={p.projectId} className="rounded-xl border border-white/20 bg-white/10 p-2 hover:bg-white/20 cursor-pointer transition-colors" onClick={() => onOpenBreakdown(p.projectId)}>
+                          <p className="font-semibold text-xs">{p.title}</p>
+                          <p className="text-[10px] opacity-80 line-clamp-1">{p.shortHook}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="flex gap-1 rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
+                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '0ms' }} />
+                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '150ms' }} />
+                  <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleSend} className="border-t border-slate-100 p-4 dark:border-slate-800">
+            <div className="flex gap-2">
+              <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Ask your mentor..." className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-atlas-accent focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100" />
+              <button type="submit" disabled={loading} className="flex h-9 w-9 items-center justify-center rounded-xl bg-atlas-accent text-white hover:bg-atlas-accent/90 disabled:opacity-50">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <button onClick={() => setIsOpen(!isOpen)} className="flex h-14 w-14 items-center justify-center rounded-full bg-atlas-accent text-white shadow-xl hover:scale-110 transition-transform active:scale-95 group relative">
+        {!isOpen && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-slate-900">1</span>}
+        {isOpen ? (
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        ) : (
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+        )}
+      </button>
     </div>
   );
 }

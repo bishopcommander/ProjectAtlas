@@ -18,9 +18,10 @@ public class ImportController {
     @PostMapping("/github")
     public ResponseEntity<Map<String, Object>> importFromGithub(
             @RequestParam(defaultValue = "web-standard") String topic,
+            @RequestParam(defaultValue = ">50") String starRange,
             @RequestParam(defaultValue = "10") int limit) {
         
-        int importedCount = githubImportService.importProjectsByTopic(topic, limit);
+        int importedCount = githubImportService.importProjectsByTopic(topic, starRange, limit);
         
         return ResponseEntity.ok(Map.of(
             "success", true,

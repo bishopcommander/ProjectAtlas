@@ -29,6 +29,11 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.getAllProjects(page, size));
     }
 
+    @GetMapping("/bulk")
+    public ResponseEntity<List<ProjectDTO>> getProjectsBulk(@RequestParam List<Long> ids) {
+        return ResponseEntity.ok(projectService.getProjectsBulk(ids));
+    }
+
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<ProjectDTO> getProjectById(@PathVariable Long id) {
         return projectService.getProjectById(id)

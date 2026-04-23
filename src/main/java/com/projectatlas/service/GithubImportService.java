@@ -20,13 +20,25 @@ public class GithubImportService {
     private final ProjectRepository projectRepository;
     private final RestTemplate restTemplate;
 
-    private static final String GITHUB_API_URL = "https://api.github.com/search/repositories?q=topic:%s&sort=stars&order=desc&per_page=%d";
+    private static final String GITHUB_API_URL = "https://api.github.com/search/repositories?q=topic:%s+stars:%s&sort=stars&order=desc&per_page=%d";
 
-    public int importProjectsByTopic(String topic, int limit) {
-        String url = String.format(GITHUB_API_URL, topic, limit);
+    public int importProjectsByTopic(String topic, String starRange, int limit) {
+        String url = String.format(GITHUB_API_URL, topic, starRange, limit);
         try {
             // Using a generic Map for simplicity in this prototype
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("User-Agent", "ProjectAtlas-App");
+            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
+            
+            org.springframework.http.ResponseEntity<Map> responseEntity = restTemplate.exchange(
+                url, 
+                org.springframework.http.HttpMethod.GET, 
+                entity, 
+                Map.class
+            );
+            
+            Map<String, Object> response = responseEntity.getBody();
+
             if (response == null || !response.containsKey("items")) {
                 return 0;
             }
@@ -80,18 +92,22 @@ public class GithubImportService {
             "game-development", "mobile-app", "iot"
         );
         
+        List<String> starRanges = List.of(">5000", "1000..5000", "50..1000", "0..50");
+        
         int totalImported = 0;
         for (String topic : coreTopics) {
-            int imported = importProjectsByTopic(topic, 50); // Get up to 50 top repos per topic
-            totalImported += imported;
-            log.info("Bulk imported {} projects for topic: {}", imported, topic);
-            
-            try {
-                // Sleep to respect GitHub's unauthenticated search rate limit (10 per minute)
-                Thread.sleep(6000); 
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+            for (String starRange : starRanges) {
+                int imported = importProjectsByTopic(topic, starRange, 20); // 20 repos per tier
+                totalImported += imported;
+                log.info("Bulk imported {} projects for topic: {} in star range: {}", imported, topic, starRange);
+                
+                try {
+                    // Sleep to respect GitHub's unauthenticated search rate limit (10 per minute)
+                    Thread.sleep(6500); 
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
         }
         return totalImported;
@@ -103,7 +119,10 @@ public class GithubImportService {
         if (stars > 5000) return 9;
         if (stars > 1000) return 8;
         if (stars > 500) return 7;
-        return 6;
+        if (stars > 100) return 6;
+        if (stars > 50) return 5;
+        if (stars > 10) return 4;
+        return 3;
     }
 
     private DifficultyLevel estimateDifficulty(List<String> topics) {

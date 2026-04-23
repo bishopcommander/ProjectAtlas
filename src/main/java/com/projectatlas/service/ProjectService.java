@@ -47,6 +47,14 @@ public class ProjectService {
     private final UpgradeSuggestionRepository upgradeSuggestionRepository;
     private final UserRepository userRepository;
     private final ScoringService scoringService;
+    private final AiService aiService;
+
+    public List<ProjectDTO> getProjectsBulk(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return projectRepository.findAllById(ids).stream().map(this::convertToDTO).toList();
+    }
 
     public Page<ProjectDTO> getAllProjects(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -272,10 +280,26 @@ public class ProjectService {
     }
 
     private SearchFilterDTO parseNaturalLanguageQuery(String query, SearchFilterDTO baseFilters) {
+        SearchFilterDTO filters = baseFilters != null ? baseFilters : SearchFilterDTO.builder().page(0).pageSize(20).build();
+        
+        // Try AI first
+        SearchFilterDTO aiFilters = aiService.parseQueryWithAi(query);
+        if (aiFilters != null) {
+            // Merge AI intent with existing manual filters
+            if (aiFilters.getKeyword() != null) filters.setKeyword(aiFilters.getKeyword());
+            if (aiFilters.getDifficulty() != null) filters.setDifficulty(aiFilters.getDifficulty());
+            if (aiFilters.getCategory() != null) filters.setCategory(aiFilters.getCategory());
+            if (aiFilters.getTechStack() != null) filters.setTechStack(aiFilters.getTechStack());
+            if (aiFilters.getMinImpactScore() != null) filters.setMinImpactScore(aiFilters.getMinImpactScore());
+            if (aiFilters.getIsTrending() != null) filters.setIsTrending(aiFilters.getIsTrending());
+            
+            return filters;
+        }
+
+        // Fallback to manual parsing
         String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
         String workingQuery = normalizedQuery;
 
-        SearchFilterDTO filters = baseFilters != null ? baseFilters : SearchFilterDTO.builder().build();
         if (filters.getPage() == null) filters.setPage(0);
         if (filters.getPageSize() == null) filters.setPageSize(20);
 
