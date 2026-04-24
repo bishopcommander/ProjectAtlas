@@ -1,187 +1,98 @@
-# ProjectAtlas
+# 🌍 ProjectAtlas
 
-Developer Project Discovery, Inspiration & Decision Engine
+**ProjectAtlas** is an AI-powered project discovery and mentorship platform designed to help developers find, evaluate, and build high-impact projects. It leverages the **Google Gemini API** to provide smart search capabilities, project scoring, and personalized mentorship.
 
-## Overview
+---
 
-ProjectAtlas is a backend-focused platform designed to help developers discover, evaluate, and plan high-impact project ideas through a combination of inspiration-driven browsing and intelligent decision-making tools.
+## 🚀 Key Features
 
-### Core Features
+### 🧠 AI-Powered Smart Search
+Stop struggling with complex filters. Simply type what you want to build in natural language (e.g., *"intermediate backend projects using Java and Microservices"*), and our AI will parse your intent and find the perfect match.
 
-- **Inspiration Layer**: Scrollable feed of curated project ideas
-- **Decision Engine**: Structured evaluation and scoring system
-- **Smart Search & Filtering**: Chat-style natural language search
-- **Project Breakdowns**: Comprehensive project details with levels
-- **Personalization**: AI-driven recommendations
-- **Save & Track**: Bookmark and monitor project progress
+### 📈 Project Evaluation & Scoring
+Every project is evaluated by AI across four dimensions:
+- **Overall Score**: General quality and depth.
+- **Resume Value**: How much it stands out to recruiters.
+- **Uniqueness**: How original the idea is compared to common tutorials.
+- **Learning Potential**: The technical challenge and growth opportunity.
 
-## Tech Stack
+### 🗺️ Level-Based Roadmaps
+Each project is broken down into progressive levels:
+- **Beginner**: Minimum viable product (MVP) requirements.
+- **Intermediate**: Adding complexity and professional features.
+- **Advanced**: Scalability, security, and advanced optimizations.
 
-- **Backend**: Java 17, Spring Boot 3.1.5
-- **Database**: MySQL 8.0
-- **Build Tool**: Maven
-- **Frontend**: React 18, Tailwind CSS, Vite
-- **Architecture**: REST API with microservices-ready design
+### 🤖 AI Project Mentor
+A built-in conversational AI assistant that provides career guidance, project recommendations, and technical implementation tips based on your interests and skill level.
 
-## Prerequisites
+### 📊 Discovery Feeds
+Curated categories to help you find inspiration:
+- **Trending**: What the community is building right now.
+- **High Impact**: Projects specifically chosen to boost your portfolio.
+- **Backend Focused**: Deep dives into systems, APIs, and data.
+- **Underrated Gems**: Unique projects that offer high learning value.
 
-- Java 17+
-- Maven 3.8+
-- MySQL 8.0+
+---
 
-## Setup Instructions
+## 🛠️ Tech Stack
 
-### 1. Database Setup
+### Backend
+- **Java 17+** with **Spring Boot 3**
+- **Spring Data JPA** & **Hibernate 6**
+- **MySQL** Database
+- **Google Gemini API** (via AI Studio)
 
-```bash
-mysql -u root -p
-```
+### Frontend
+- **React** (Vite)
+- **Modern CSS** with Tailwind-inspired utility classes
+- **Glassmorphism** & Responsive Design
 
-```sql
-CREATE DATABASE project_atlas;
-USE project_atlas;
+---
 
--- Run the schema file
-SOURCE src/main/resources/db/schema.sql;
-SOURCE src/main/resources/db/seed-data.sql;
-```
+## ⚙️ Setup & Installation
 
-### 2. Application Setup
+### Prerequisites
+- JDK 17 or higher
+- Node.js (v18+)
+- MySQL Server
+- Google AI Studio (Gemini) API Key
 
-1. Clone the repository
-2. Navigate to the project directory
-3. Update `src/main/resources/application.yml` with your MySQL credentials
-4. Install frontend dependencies:
+### Backend Setup
+1. Clone the repository.
+2. Create a `.env` file in the root directory:
+   ```env
+   AI_API_KEY=your_gemini_api_key_here
+   DB_URL=jdbc:mysql://localhost:3306/project_atlas
+   DB_USERNAME=your_username
+   DB_PASSWORD=your_password
+   ```
+3. Run the Spring Boot application using Maven:
+   ```bash
+   ./mvnw spring-boot:run
+   ```
 
-```bash
-cd frontend
-npm install
-```
+### Frontend Setup
+1. Navigate to the `frontend` directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-5. Run Maven build:
+---
 
-```bash
-mvn clean install
-```
+## 🛡️ Security Note
+This project uses environment variables (`.env`) to manage sensitive information like API keys. The `.env` file and experimental `scratch/` directory are excluded from version control via `.gitignore`. 
 
-### 3. Running the Application
+If you encounter an API key leak warning, ensure you rotate your keys immediately and scrub your Git history using `git-filter-repo`.
 
-For frontend development with hot reload:
+---
 
-```bash
-cd frontend
-npm run dev
-```
-
-Then run the backend in a separate terminal:
-
-```bash
-mvn spring-boot:run
-```
-
-The frontend dev server will be available at `http://localhost:5173` and proxies API calls to `http://localhost:8080/api`.
-
-For an integrated Spring Boot run, build the frontend first:
-
-```bash
-cd frontend
-npm run build
-```
-
-This writes the production React app to `src/main/resources/static`, and Spring Boot will serve it on `http://localhost:8080`.
-
-## API Endpoints
-
-### Projects
-- `GET /api/projects` - Get all projects with filtering
-- `GET /api/projects/{id}` - Get project details
-- `GET /api/projects/{id}/breakdown` - Get full decision-engine breakdown
-- `GET /api/projects/recommendations/user/{userId}` - Get personalized recommendations
-- `GET /api/projects/random` - Get a random project idea
-- `POST /api/projects` - Create new project
-- `PUT /api/projects/{id}` - Update project
-- `DELETE /api/projects/{id}` - Delete project
-
-### Discovery Feed
-- `GET /api/discovery/feed` - Get discovery feed with categories
-- `GET /api/discovery/trending` - Get trending projects
-- `GET /api/discovery/high-impact` - Get high-impact projects
-- `GET /api/discovery/backend-focused` - Get backend-heavy project ideas
-
-### Search & Filtering
-- `GET /api/search` - Advanced search with natural language parsing
-- `GET /api/search/smart?query=backend project with java medium difficulty` - Parse natural language to filters
-- `POST /api/search/filter` - Combine structured filters in one request
-- `GET /api/filters` - Get available filters
-
-### Scoring & Evaluation
-- `GET /api/projects/{id}/score` - Get project evaluation score
-- `POST /api/projects/{id}/evaluate` - Evaluate project fit
-
-### User Collections
-- `GET /api/collections` - Get user's bookmarks
-- `POST /api/collections` - Bookmark a project
-- `DELETE /api/collections/{projectId}` - Remove bookmark
-
-## Project Structure
-
-```
-src/main/java/com/projectatlas/
-├── config/              # Spring configuration classes
-├── controller/          # REST API controllers
-├── entity/              # JPA entity models
-├── repository/          # Data access layer
-├── service/             # Business logic layer
-├── dto/                 # Data transfer objects
-└── util/                # Utility classes
-
-src/main/resources/
-├── application.yml      # Application configuration
-└── db/                  # Database scripts
-    ├── schema.sql
-    └── seed-data.sql
-```
-
-## Database Schema
-
-### Core Tables
-- **users** - User accounts
-- **projects** - Project ideas
-- **project_tags** - Tags/categories
-- **project_details** - Extended project information
-- **project_levels** - Beginner/Intermediate/Advanced variants
-- **user_collections** - Bookmarks
-- **project_metrics** - Evaluation scores
-
-## Development
-
-### Building
-```bash
-mvn clean package
-```
-
-### Running Tests
-```bash
-mvn test
-```
-
-### Code Quality
-```bash
-mvn clean verify
-```
-
-## Configuration
-
-Edit `src/main/resources/application.yml` for:
-- Database connection settings
-- Server port and context path
-- Logging levels
-- JPA/Hibernate settings
-
-## License
-
-MIT
-
-## Support
-
-For issues and questions, please open an issue on the repository.
+## 📄 License
+This project is for educational purposes as part of a professional developer portfolio.
