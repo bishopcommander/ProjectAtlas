@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/scoring")
+@RequestMapping("/api/scoring")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ScoringController {

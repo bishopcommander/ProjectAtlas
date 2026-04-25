@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/discovery")
+@RequestMapping("/api/discovery")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class DiscoveryController {

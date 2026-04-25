@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/collections")
+@RequestMapping("/api/collections")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class UserCollectionController {

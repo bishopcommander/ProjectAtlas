@@ -11,6 +11,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+      dialect: org.hibernate.dialect.MySQL8Dialect
     defer-datasource-initialization: true
     properties:
       hibernate:
@@ -32,8 +33,7 @@ spring:
 
 server:
   port: ${PORT:8080}
-  servlet:
-    context-path: /api
+
 
 logging:
   level:
