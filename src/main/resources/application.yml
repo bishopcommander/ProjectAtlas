@@ -3,9 +3,9 @@ spring:
     name: project-atlas
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/project_atlas?createDatabaseIfNotExist=true&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mysql://root:jRhRjRLEkMKxFUCWRqLAOtJEaWMqfoqs@mysql.railway.internal:3306/railway}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:11052007339Pnt@}
+    password: ${DB_PASSWORD:jRhRjRLEkMKxFUCWRqLAOtJEaWMqfoqs}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -33,7 +33,6 @@ spring:
 
 server:
   port: ${PORT:8080}
-
 
 logging:
   level:
