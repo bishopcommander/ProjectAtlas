@@ -23,24 +23,23 @@ public class ProjectAtlasApplication {
     }
 
     @Bean
-    public org.springframework.boot.CommandLineRunner initData(com.projectatlas.repository.ProjectRepository projectRepository) {
+    public org.springframework.boot.CommandLineRunner initData(com.projectatlas.repository.ProjectRepository projectRepository, com.projectatlas.service.GithubImportService githubImportService) {
         return args -> {
-            System.out.println("DEBUG: Checking database for projects...");
             if (projectRepository.count() == 0) {
-                System.out.println("DEBUG: Database is empty. Seeding 10 core projects...");
-                projectRepository.saveAll(java.util.List.of(
-                    createProject("E-commerce Order Management System", "Build a scalable order service", "Java, Spring Boot", 8, com.projectatlas.entity.DifficultyLevel.INTERMEDIATE, com.projectatlas.entity.ProjectCategory.BACKEND),
-                    createProject("Real-time Notification Service", "Master event-driven architecture", "Kafka, Spring Boot", 9, com.projectatlas.entity.DifficultyLevel.ADVANCED, com.projectatlas.entity.ProjectCategory.BACKEND),
-                    createProject("Smart IoT Home Hub", "Connect your home", "Python, React", 9, com.projectatlas.entity.DifficultyLevel.ADVANCED, com.projectatlas.entity.ProjectCategory.IOT),
-                    createProject("AI Resume Optimizer", "Get past the ATS", "Python, OpenAI", 8, com.projectatlas.entity.DifficultyLevel.INTERMEDIATE, com.projectatlas.entity.ProjectCategory.API_SERVICE)
-                ));
-                System.out.println("DEBUG: Seeding complete. Total projects: " + projectRepository.count());
+                System.out.println("DEBUG: Database is empty. Starting dynamic Mass Context Expansion from GitHub in background...");
+                new Thread(() -> {
+                    try {
+                        int imported = githubImportService.importBulkProjects();
+                        System.out.println("DEBUG: Dynamic seeding complete. Imported " + imported + " projects from GitHub.");
+                    } catch (Exception e) {
+                        System.err.println("DEBUG: Failed to import projects from GitHub: " + e.getMessage());
+                    }
+                }).start();
             } else {
                 System.out.println("DEBUG: Database already has " + projectRepository.count() + " projects.");
             }
         };
     }
-
     private com.projectatlas.entity.Project createProject(String title, String hook, String tech, int impact, com.projectatlas.entity.DifficultyLevel diff, com.projectatlas.entity.ProjectCategory cat) {
         com.projectatlas.entity.Project p = new com.projectatlas.entity.Project();
         p.setTitle(title);
