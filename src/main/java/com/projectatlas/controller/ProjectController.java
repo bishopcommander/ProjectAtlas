@@ -5,7 +5,6 @@ import com.projectatlas.dto.ProjectDTO;
 import com.projectatlas.dto.ProjectRecommendationDTO;
 import com.projectatlas.service.ProjectService;
 import com.projectatlas.repository.ProjectRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +15,16 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/projects")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ProjectController {
 
     private final ProjectService projectService;
     private final ProjectRepository projectRepository;
+
+    public ProjectController(ProjectService projectService, ProjectRepository projectRepository) {
+        this.projectService = projectService;
+        this.projectRepository = projectRepository;
+    }
 
     @GetMapping("/debug/db")
     public ResponseEntity<Map<String, Object>> debugDb() {

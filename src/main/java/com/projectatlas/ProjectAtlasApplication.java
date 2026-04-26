@@ -29,15 +29,29 @@ public class ProjectAtlasApplication {
             if (projectRepository.count() == 0) {
                 System.out.println("DEBUG: Database is empty. Seeding 10 core projects...");
                 projectRepository.saveAll(java.util.List.of(
-                    com.projectatlas.entity.Project.builder().title("E-commerce Order Management System").shortHook("Build a scalable order service").description("Full description...").techStack("Java, Spring Boot").impactScore(8).difficulty(com.projectatlas.entity.DifficultyLevel.INTERMEDIATE).category(com.projectatlas.entity.ProjectCategory.BACKEND).isTrending(true).build(),
-                    com.projectatlas.entity.Project.builder().title("Real-time Notification Service").shortHook("Master event-driven architecture").description("Full description...").techStack("Kafka, Spring Boot").impactScore(9).difficulty(com.projectatlas.entity.DifficultyLevel.ADVANCED).category(com.projectatlas.entity.ProjectCategory.BACKEND).isTrending(true).build(),
-                    com.projectatlas.entity.Project.builder().title("Smart IoT Home Hub").shortHook("Connect your home").description("Full description...").techStack("Python, React").impactScore(9).difficulty(com.projectatlas.entity.DifficultyLevel.ADVANCED).category(com.projectatlas.entity.ProjectCategory.IOT).isTrending(true).build(),
-                    com.projectatlas.entity.Project.builder().title("AI Resume Optimizer").shortHook("Get past the ATS").description("Full description...").techStack("Python, OpenAI").impactScore(8).difficulty(com.projectatlas.entity.DifficultyLevel.INTERMEDIATE).category(com.projectatlas.entity.ProjectCategory.API_SERVICE).isTrending(true).build()
+                    createProject("E-commerce Order Management System", "Build a scalable order service", "Java, Spring Boot", 8, com.projectatlas.entity.DifficultyLevel.INTERMEDIATE, com.projectatlas.entity.ProjectCategory.BACKEND),
+                    createProject("Real-time Notification Service", "Master event-driven architecture", "Kafka, Spring Boot", 9, com.projectatlas.entity.DifficultyLevel.ADVANCED, com.projectatlas.entity.ProjectCategory.BACKEND),
+                    createProject("Smart IoT Home Hub", "Connect your home", "Python, React", 9, com.projectatlas.entity.DifficultyLevel.ADVANCED, com.projectatlas.entity.ProjectCategory.IOT),
+                    createProject("AI Resume Optimizer", "Get past the ATS", "Python, OpenAI", 8, com.projectatlas.entity.DifficultyLevel.INTERMEDIATE, com.projectatlas.entity.ProjectCategory.API_SERVICE)
                 ));
                 System.out.println("DEBUG: Seeding complete. Total projects: " + projectRepository.count());
             } else {
                 System.out.println("DEBUG: Database already has " + projectRepository.count() + " projects.");
             }
         };
+    }
+
+    private com.projectatlas.entity.Project createProject(String title, String hook, String tech, int impact, com.projectatlas.entity.DifficultyLevel diff, com.projectatlas.entity.ProjectCategory cat) {
+        com.projectatlas.entity.Project p = new com.projectatlas.entity.Project();
+        p.setTitle(title);
+        p.setShortHook(hook);
+        p.setTechStack(tech);
+        p.setImpactScore(impact);
+        p.setDifficulty(diff);
+        p.setCategory(cat);
+        p.setIsTrending(true);
+        p.setViewCount(0L);
+        p.setBookmarkCount(0L);
+        return p;
     }
 }
