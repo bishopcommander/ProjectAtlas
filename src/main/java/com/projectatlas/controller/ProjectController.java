@@ -4,22 +4,31 @@ import com.projectatlas.dto.ProjectBreakdownDTO;
 import com.projectatlas.dto.ProjectDTO;
 import com.projectatlas.dto.ProjectRecommendationDTO;
 import com.projectatlas.service.ProjectService;
+import com.projectatlas.repository.ProjectRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/projects")
+@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final ProjectRepository projectRepository;
 
-    public ProjectController(ProjectService projectService) {
-        this.projectService = projectService;
+    @GetMapping("/debug/db")
+    public ResponseEntity<Map<String, Object>> debugDb() {
+        return ResponseEntity.ok(Map.of(
+            "count", projectRepository.count(),
+            "projects", projectRepository.findAll().stream().limit(5).toList()
+        ));
     }
 
     @GetMapping
