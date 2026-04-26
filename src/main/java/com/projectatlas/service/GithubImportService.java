@@ -89,7 +89,10 @@ public class GithubImportService {
             "machine-learning", "react", "spring-boot", "blockchain", 
             "fintech", "ecommerce", "system-design", "microservices", 
             "devops", "kubernetes", "data-engineering", "cybersecurity",
-            "game-development", "mobile-app", "iot"
+            "game-development", "mobile-app", "iot", "artificial-intelligence",
+            "cloud-native", "serverless", "web3", "distributed-systems",
+            "automation", "rust", "golang", "typescript", "terraform",
+            "ansible", "graphql", "grpc", "nosql", "postgres"
         );
         
         List<String> starRanges = List.of(">5000", "1000..5000", "50..1000", "0..50");
@@ -97,7 +100,7 @@ public class GithubImportService {
         int totalImported = 0;
         for (String topic : coreTopics) {
             for (String starRange : starRanges) {
-                int imported = importProjectsByTopic(topic, starRange, 20); // 20 repos per tier
+                int imported = importProjectsByTopic(topic, starRange, 50); // Increased to 50
                 totalImported += imported;
                 log.info("Bulk imported {} projects for topic: {} in star range: {}", imported, topic, starRange);
                 
