@@ -248,7 +248,7 @@ function AllProjectsView({ bookmarks, removeBookmark, toggleBookmark, isBookmark
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:8080/api/projects?page=${pageNum}&size=24`);
+      const res = await fetch(`${API_BASE}/projects?page=${pageNum}&size=24`);
       if (!res.ok) throw new Error("Failed to load projects");
       const data = await res.json();
       
@@ -473,7 +473,7 @@ function Dashboard({ bookmarks, removeBookmark, onOpenBreakdown }) {
       setError(null);
       try {
         const ids = bookmarks.join(",");
-        const res = await fetch(`http://localhost:8080/api/projects/bulk?ids=${ids}`);
+        const res = await fetch(`${API_BASE}/projects/bulk?ids=${ids}`);
         if (!res.ok) throw new Error("Failed to load bookmarks");
         const data = await res.json();
         setBookmarkedProjects(data);
@@ -553,6 +553,8 @@ export default function App() {
   });
   const [spotlight, setSpotlight] = useState(null);
   const [pageLoading, setPageLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [panelError, setPanelError] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
@@ -616,20 +618,34 @@ export default function App() {
       setPageLoading(true);
       setPanelError("");
 
+      const safeRequest = async (path, fallback = null) => {
+        try {
+          return await request(path);
+        } catch (e) {
+          console.warn(`Non-critical request failed: ${path}`, e);
+          return fallback;
+        }
+      };
+
       try {
-        const [allProjects, trending, impact, backend, underrated, randomProject] = await Promise.all([
-          request("/projects?page=0&size=9"),
-          request("/discovery/trending?page=0&size=4"),
-          request("/discovery/high-impact?page=0&size=4"),
-          request("/discovery/backend-focused?page=0&size=4"),
-          request("/discovery/underrated?page=0&size=4"),
-          request("/projects/random")
+        // Fetch all projects (critical for main view)
+        const allProjects = await request("/projects?page=0&size=9");
+        
+        // Fetch everything else safely
+        const [trending, impact, backend, underrated, randomProject] = await Promise.all([
+          safeRequest("/discovery/trending?page=0&size=4", { content: [] }),
+          safeRequest("/discovery/high-impact?page=0&size=4", { content: [] }),
+          safeRequest("/discovery/backend-focused?page=0&size=4", { content: [] }),
+          safeRequest("/discovery/underrated?page=0&size=4", { content: [] }),
+          safeRequest("/projects/random", null)
         ]);
 
         if (cancelled) return;
 
         setResults(allProjects.content || []);
         setResultsTitle("All projects");
+        setPage(0);
+        setHasMore(!allProjects.last);
         setFeeds({
           trending: trending.content || [],
           impact: impact.content || [],
@@ -644,7 +660,8 @@ export default function App() {
         });
       } catch (error) {
         if (!cancelled) {
-          setPanelError("Could not load data. Make sure Spring Boot and MySQL are running.");
+          console.error("Critical boot failure:", error);
+          setPanelError("Could not connect to the backend. Please check if the server is running.");
         }
       } finally {
         if (!cancelled) {
@@ -717,6 +734,8 @@ export default function App() {
 
       setResults(data.content || []);
       setResultsTitle(`Projects using ${tag}`);
+      setPage(0);
+      setHasMore(!data.last);
       setActiveChips([`Stack: ${tag}`]);
       setInterpretation(`Showing projects that use ${tag}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -760,6 +779,8 @@ export default function App() {
 
       setResults(data.content || []);
       setResultsTitle("Filtered projects");
+      setPage(0);
+      setHasMore(!data.last);
       setActiveChips(chips);
       setInterpretation(chips.length ? "Filters applied." : "Showing all projects.");
     } catch (error) {
@@ -789,6 +810,8 @@ export default function App() {
 
         setResults(data.results?.content || []);
         setResultsTitle(`Search results for "${query.trim()}"`);
+        setPage(0);
+        setHasMore(!data.results?.last);
         setActiveChips(chips);
         setInterpretation(data.interpretation || "Search complete.");
         return;
@@ -810,13 +833,12 @@ export default function App() {
   async function handleGithubImport() {
     setPanelError("");
     try {
-      const data = await request("/import/github?limit=15", { method: "POST" });
+      const data = await request("/import/github/bulk", { method: "POST" });
       if (data.success) {
-        setInterpretation(`Import result: ${data.message}`);
-        await loadFeed("projects", "/projects", "All projects");
+        setInterpretation(data.message);
       }
     } catch (error) {
-      setPanelError("Could not trigger GitHub import.");
+      setPanelError("Could not trigger mass context expansion.");
     }
   }
 
@@ -1104,11 +1126,61 @@ export default function App() {
                         />
                       ))}
                     </div>
-
                   ) : (
                     <div className="card p-8 text-center">
                       <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">No projects found.</h3>
                       <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">Try adjusting your filters or search query.</p>
+                    </div>
+                  )}
+
+                  {hasMore && results.length > 0 && !pageLoading && (
+                    <div className="mt-8 flex justify-center">
+                      <button 
+                        className="button-secondary px-10 py-3" 
+                        onClick={async () => {
+                          const nextPage = page + 1;
+                          setPageLoading(true);
+                          try {
+                            // Determine which endpoint to use based on the current resultsTitle or filters
+                            let data;
+                            if (resultsTitle.startsWith("Search results")) {
+                               data = await request(`/search/smart?query=${encodeURIComponent(query.trim())}&page=${nextPage}`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(filters)
+                              });
+                              data = data.results;
+                            } else if (resultsTitle === "Filtered projects" || resultsTitle.startsWith("Projects using")) {
+                               data = await request("/search/filter", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  keyword: query.trim() || null,
+                                  difficulty: filters.difficulty || null,
+                                  category: filters.category || null,
+                                  techStack: filters.techStack || (resultsTitle.startsWith("Projects using") ? resultsTitle.replace("Projects using ", "") : null),
+                                  minImpactScore: filters.impact ? Number(filters.impact) : null,
+                                  isTrending: filters.trending || null,
+                                  page: nextPage,
+                                  pageSize: 20
+                                })
+                              });
+                            } else {
+                              data = await request(`/projects?page=${nextPage}&size=20`);
+                            }
+
+                            setResults(prev => [...prev, ...(data.content || [])]);
+                            setPage(nextPage);
+                            setHasMore(!data.last);
+                          } catch (err) {
+                            setPanelError("Could not load more projects.");
+                          } finally {
+                            setPageLoading(false);
+                          }
+                        }}
+                      >
+                        Load More Projects
+                      </button>
                     </div>
                   )}
                 </section>

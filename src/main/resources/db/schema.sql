@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     preferred_tech_stack TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_username (username),
     INDEX idx_email (email)
 );
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS projects (
     view_count BIGINT DEFAULT 0,
     bookmark_count BIGINT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_difficulty (difficulty),
     INDEX idx_category (category),
     INDEX idx_is_trending (is_trending),
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS project_details (
     what_impresses TEXT,
     key_learnings TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
     UNIQUE KEY uk_project_id (project_id)
 );
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS project_levels (
     features TEXT,
     implementation_tips TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
     INDEX idx_project_id (project_id),
     INDEX idx_level_type (level_type)
