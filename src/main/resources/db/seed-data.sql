@@ -6,7 +6,7 @@ INSERT INTO users (user_id, username, email, password, full_name, skill_level, p
 (1, 'john_dev', 'john@example.com', 'hashedpassword123', 'John Developer', 'INTERMEDIATE', 'Java, Spring Boot'),
 (2, 'alice_coder', 'alice@example.com', 'hashedpassword456', 'Alice Coder', 'ADVANCED', 'Python, Django'),
 (3, 'bob_junior', 'bob@example.com', 'hashedpassword789', 'Bob Junior', 'BEGINNER', 'JavaScript, React')
-ON DUPLICATE KEY UPDATE user_id = user_id;
+;
 
 -- Sample Projects
 INSERT INTO projects (project_id, title, description, short_hook, difficulty, category, tech_stack, impact_score, uniqueness_score, learning_potential, resume_value, is_trending, view_count, bookmark_count) VALUES
@@ -50,7 +50,7 @@ INSERT INTO projects (project_id, title, description, short_hook, difficulty, ca
 'Learn REST API fundamentals and database design',
 'BEGINNER', 'LEARNING_PROJECT', 'Java, Spring Boot, MySQL',
 5, 4, 8, 6, false, 300, 100)
-ON DUPLICATE KEY UPDATE project_id = project_id;
+;
 
 -- Sample Project Details
 INSERT INTO project_details (detail_id, project_id, overview, core_logic, system_architecture, common_mistakes, what_impresses) VALUES
@@ -68,7 +68,7 @@ INSERT INTO project_details (detail_id, project_id, overview, core_logic, system
 'Assuming synchronous delivery. Not handling provider failures. Poor rate limiting. Ignoring message deduplication.',
 'Implementing reliable delivery patterns. Using async/await properly. Comprehensive error handling. Monitoring queue depths. Clean logging.'
 )
-ON DUPLICATE KEY UPDATE detail_id = detail_id;
+;
 
 -- Project Levels
 INSERT INTO project_levels (level_id, project_id, level_type, description, requirements, estimated_hours, features) VALUES
@@ -78,7 +78,7 @@ INSERT INTO project_levels (level_id, project_id, level_type, description, requi
 'Order service, Inventory integration, Payment processing, Email notifications'),
 (3, 1, 'ADVANCED', 'Fully distributed system with advanced patterns', 'Event sourcing, saga pattern, distributed tracing', 120,
 'Complete microservices, Event sourcing, Compensation transactions, Monitoring, Analytics')
-ON DUPLICATE KEY UPDATE level_id = level_id;
+;
 
 -- Upgrade Suggestions
 INSERT INTO upgrade_suggestions (suggestion_id, project_id, title, description, complexity, impact_level) VALUES
@@ -87,4 +87,4 @@ INSERT INTO upgrade_suggestions (suggestion_id, project_id, title, description, 
 (3, 1, 'Multi-currency Support', 'Support multiple currencies with real-time conversion', 'MEDIUM', 'MEDIUM'),
 (4, 2, 'Template System', 'Advanced template engine with personalization', 'MEDIUM', 'MEDIUM'),
 (5, 2, 'A/B Testing Framework', 'Build framework for testing notification variants', 'HIGH', 'HIGH')
-ON DUPLICATE KEY UPDATE suggestion_id = suggestion_id;
+;
